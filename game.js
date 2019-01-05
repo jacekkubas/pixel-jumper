@@ -267,8 +267,8 @@ class playGame extends Phaser.Scene{
             this.sound.play('die');
             this.cameras.main.shake(700, 0.01);
             this.cameras.main.flash(700, 200, 0, 0, null, function (start, end) {
+                this.player.y = 0 - this.player.height;
                 if (end == 1) {
-                    this.player.y = 0 - this.player.height;
                     this.scene.start("PlayGame");
 //                    this.player.y = 0;
                 }
