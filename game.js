@@ -35,7 +35,7 @@ let gameOptions = {
     jumps: 2,
 
     // % of probability a coin appears on the platform
-    coinPercent: 25
+    coinPercent: 100
 }
 
 window.onload = function() {
@@ -108,8 +108,6 @@ class preloadGame extends Phaser.Scene{
             repeat: -1
         });
         
-        this.sound.add('coin');
-
         this.scene.start("PlayGame");
     }
 }
@@ -165,6 +163,10 @@ class playGame extends Phaser.Scene{
         // adding a platform to the game, the arguments are platform width, x position and y position
         this.addPlatform(game.config.width, game.config.width / 2, game.config.height * gameOptions.platformVerticalLimit[1]);
 
+        // score
+        this.score = 0;
+        this.scoreText = this.add.text(16, 16, '0', { fontSize: '32px', fill: '#000' });
+        
         // adding the player;
         this.player = this.physics.add.sprite(gameOptions.playerStartPosition, game.config.height * 0.7, "player");
         this.player.setGravityY(gameOptions.playerGravity);
@@ -180,13 +182,17 @@ class playGame extends Phaser.Scene{
 
         // setting collisions between the player and the coin group
         this.physics.add.overlap(this.player, this.coinGroup, function(player, coin){
-            this.sound.play('coin');
             this.tweens.add({
                 targets: coin,
                 y: coin.y - 100,
                 alpha: 0,
                 duration: 800,
                 ease: "Cubic.easeOut",
+                onStart: function () {
+                    this.sound.play('coin');
+                    this.score++;
+                    this.scoreText.setText(this.score);
+                },
                 callbackScope: this,
                 onComplete: function(){
                     this.coinGroup.killAndHide(coin);
@@ -252,6 +258,16 @@ class playGame extends Phaser.Scene{
             if(this.player.body.touching.down){
                 this.playerJumps = 0;
             }
+            
+            if (this.playerJumps == 1) {
+                this.tweens.add({
+                    targets: this.player,
+                    angle: 360,
+                    duration: 800,
+                    ease: "Cubic.easeOut",
+                });
+            }
+            
             this.player.setVelocityY(gameOptions.jumpForce * -1);
             this.playerJumps ++;
 
@@ -261,7 +277,6 @@ class playGame extends Phaser.Scene{
         }
     }
     update(){
-
         // game over
         if(this.player.y > game.config.height){
             this.sound.play('die');
