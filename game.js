@@ -35,7 +35,7 @@ let gameOptions = {
     jumps: 2,
 
     // % of probability a coin appears on the platform
-    coinPercent: 25
+    coinPercent: 50
 }
 
 window.onload = function() {
@@ -108,8 +108,6 @@ class preloadGame extends Phaser.Scene{
             repeat: -1
         });
         
-        this.sound.add('coin');
-
         this.scene.start("PlayGame");
     }
 }
@@ -120,6 +118,8 @@ class playGame extends Phaser.Scene{
         super("PlayGame");
     }
     create(){
+        this.extraJump = true;
+        
         // keeping track of added platforms
         this.addedPlatforms = 0;
 
@@ -165,6 +165,10 @@ class playGame extends Phaser.Scene{
         // adding a platform to the game, the arguments are platform width, x position and y position
         this.addPlatform(game.config.width, game.config.width / 2, game.config.height * gameOptions.platformVerticalLimit[1]);
 
+        // score
+        this.score = 0;
+        this.scoreText = this.add.text(16, 16, '0', { fontSize: '32px', fill: '#000' });
+        
         // adding the player;
         this.player = this.physics.add.sprite(gameOptions.playerStartPosition, game.config.height * 0.7, "player");
         this.player.setGravityY(gameOptions.playerGravity);
@@ -180,7 +184,11 @@ class playGame extends Phaser.Scene{
 
         // setting collisions between the player and the coin group
         this.physics.add.overlap(this.player, this.coinGroup, function(player, coin){
-            this.sound.play('coin');
+            this.coinSound.play();
+            this.score++;
+            this.scoreText.setText(this.score);
+            this.coinGroup.remove(coin);
+            
             this.tweens.add({
                 targets: coin,
                 y: coin.y - 100,
@@ -190,13 +198,16 @@ class playGame extends Phaser.Scene{
                 callbackScope: this,
                 onComplete: function(){
                     this.coinGroup.killAndHide(coin);
-                    this.coinGroup.remove(coin);
                 }
             });
         }, null, this);
 
         // checking for input
         this.input.on("pointerdown", this.jump, this);
+        
+        this.coinSound = this.sound.add('coin', {volume: 0.1});
+        this.jumpSound = this.sound.add('jump', {volume: 0.1});
+        this.dieSound = this.sound.add('die', {volume: 0.1});
     }
 
     // the core of the script: platform are added from the pool or created on the fly
@@ -226,48 +237,64 @@ class playGame extends Phaser.Scene{
         // is there a coin over the platform?
         if(this.addedPlatforms > 1){
             if(Phaser.Math.Between(1, 100) <= gameOptions.coinPercent){
-                if(this.coinPool.getLength()){
-                    let coin = this.coinPool.getFirst();
-                    coin.x = posX;
-                    coin.y = posY - 96;
-                    coin.alpha = 1;
-                    coin.active = true;
-                    coin.visible = true;
-                    this.coinPool.remove(coin);
-                }
-                else{
-                    let coin = this.physics.add.sprite(posX, posY - 96, "coin");
-                    coin.setImmovable(true);
-                    coin.setVelocityX(platform.body.velocity.x);
-                    coin.anims.play("rotate");
-                    this.coinGroup.add(coin);
-                }
+                let coin = this.physics.add.sprite(posX, posY - 96, "coin");
+                coin.setImmovable(true);
+                coin.setVelocityX(platform.body.velocity.x);
+                coin.anims.play("rotate");
+                this.coinGroup.add(coin);
             }
         }
     }
 
     // the player jumps when on the ground, or once in the air as long as there are jumps left and the first jump was on the ground
     jump(){
+        if (this.extraJump) {
+            if (!this.player.body.touching.down) {
+                    this.tweens.add({
+                    targets: this.player,
+                    angle: 360,
+                    duration: 800,
+                    ease: "Cubic.easeOut"
+                });
+            }
+            this.player.setVelocityY(gameOptions.jumpForce * -1);
+            this.jumpSound.play();
+            this.extraJump = false;
+        }
+        
         if(this.player.body.touching.down || (this.playerJumps > 0 && this.playerJumps < gameOptions.jumps)){
             if(this.player.body.touching.down){
                 this.playerJumps = 0;
             }
+            
+            if (this.playerJumps == 1) {
+                this.tweens.add({
+                    targets: this.player,
+                    angle: 360,
+                    duration: 800,
+                    ease: "Cubic.easeOut"
+                });
+            }
+            
             this.player.setVelocityY(gameOptions.jumpForce * -1);
             this.playerJumps ++;
 
             // stops animation
             this.player.anims.stop();
-            this.sound.play('jump');
+            this.jumpSound.play();
         }
     }
+    
     update(){
-
         // game over
         if(this.player.y > game.config.height){
-            this.sound.play('die');
+            this.dieSound.play();
             this.cameras.main.shake(700, 0.01);
             this.cameras.main.flash(700, 200, 0, 0, null, function (start, end) {
-                this.player.y = 0 - this.player.height;
+                this.player.y = 0 - (this.player.height * 2)  ;
+                this.extraJump = true;
+                this.score = 0;
+                this.scoreText.setText(this.score);
                 if (end == 1) {
                     this.scene.start("PlayGame");
 //                    this.player.y = 0;
