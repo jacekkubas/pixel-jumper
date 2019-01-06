@@ -170,7 +170,7 @@ class playGame extends Phaser.Scene{
         this.scoreText = this.add.text(16, 16, '0', { fontSize: '32px', fill: '#000' });
         
         // adding the player;
-        this.player = this.physics.add.sprite(gameOptions.playerStartPosition, game.config.height * 0.2, "player");
+        this.player = this.physics.add.sprite(gameOptions.playerStartPosition, game.config.height * 0.7, "player");
         this.player.setGravityY(gameOptions.playerGravity);
 
         // setting collisions between the player and the platform group
@@ -184,7 +184,7 @@ class playGame extends Phaser.Scene{
 
         // setting collisions between the player and the coin group
         this.physics.add.overlap(this.player, this.coinGroup, function(player, coin){
-            this.sound.play('coin');
+            this.coinSound.play();
             this.score++;
             this.scoreText.setText(this.score);
             this.coinGroup.remove(coin);
@@ -204,6 +204,10 @@ class playGame extends Phaser.Scene{
 
         // checking for input
         this.input.on("pointerdown", this.jump, this);
+        
+        this.coinSound = this.sound.add('coin', {volume: 0.1});
+        this.jumpSound = this.sound.add('jump', {volume: 0.1});
+        this.dieSound = this.sound.add('die', {volume: 0.1});
     }
 
     // the core of the script: platform are added from the pool or created on the fly
@@ -254,7 +258,7 @@ class playGame extends Phaser.Scene{
                 });
             }
             this.player.setVelocityY(gameOptions.jumpForce * -1);
-            this.sound.play('jump');
+            this.jumpSound.play();
             this.extraJump = false;
         }
         
@@ -277,23 +281,23 @@ class playGame extends Phaser.Scene{
 
             // stops animation
             this.player.anims.stop();
-            this.sound.play('jump');
+            this.jumpSound.play();
         }
     }
     
     update(){
         // game over
         if(this.player.y > game.config.height){
-            this.sound.play('die');
+            this.dieSound.play();
             this.cameras.main.shake(700, 0.01);
             this.cameras.main.flash(700, 200, 0, 0, null, function (start, end) {
-                this.player.y = 0 - this.player.height;
+                this.player.y = 0 - (this.player.height * 2)  ;
                 this.extraJump = true;
                 this.score = 0;
                 this.scoreText.setText(this.score);
                 if (end == 1) {
-//                    this.scene.start("PlayGame");
-                    this.player.y = 0;
+                    this.scene.start("PlayGame");
+//                    this.player.y = 0;
                 }
             });
             
