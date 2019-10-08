@@ -65,6 +65,9 @@ class preloadGame extends Phaser.Scene{
         super("PreloadGame");
     }
     preload(){
+        this.load.image("niebo", "niebo.png");
+        this.load.image("chmury", "chmury.png");
+        this.load.image("gory", "gory.png");
         this.load.image("platform", "platform.png");
 
         // player is a sprite sheet made by 24x48 pixels
@@ -118,6 +121,12 @@ class playGame extends Phaser.Scene{
         super("PlayGame");
     }
     create(){
+        this.niebo = this.add.tileSprite(0,0,game.config.width,game.config.height, 'niebo');
+        this.niebo.setOrigin(0, 0);
+        this.chmury = this.add.tileSprite(0,0,game.config.width,game.config.height, 'chmury');
+        this.chmury.setOrigin(0, 0);
+        this.gory = this.add.tileSprite(0,0,game.config.width,game.config.height, 'gory');
+        this.gory.setOrigin(0, 0);
         this.extraJump = true;
         
         // keeping track of added platforms
@@ -286,6 +295,9 @@ class playGame extends Phaser.Scene{
     }
     
     update(){
+        this.gory.tilePositionX -= 0.5;
+        this.chmury.tilePositionX -= 1;
+        
         // game over
         if(this.player.y > game.config.height){
             this.dieSound.play();
@@ -296,8 +308,8 @@ class playGame extends Phaser.Scene{
                 this.score = 0;
                 this.scoreText.setText(this.score);
                 if (end == 1) {
-                    this.scene.start("PlayGame");
-//                    this.player.y = 0;
+//                    this.scene.start("PlayGame");
+                    this.player.y = 0;
                 }
             });
             
